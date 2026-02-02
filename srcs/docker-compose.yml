@@ -1,4 +1,3 @@
-version: "3.8"
 
 volumes:
   wordpress:
@@ -22,13 +21,13 @@ networks:
 
 secrets:
   db_root_password:
-    file: ../secrets/db_root_password.txt
+    file: ~/secrets/db_root_password.txt
   db_password:
-    file: ../secrets/db_password.txt
+    file: ~/secrets/db_password.txt
   wp_admin_password:
-    file: ../secrets/wp_admin_password.txt
+    file: ~/secrets/wp_admin_password.txt
   wp_user_password:
-    file: ../secrets/wp_user_password.txt
+    file: ~/secrets/wp_user_password.txt
 
 services:
   mariadb:

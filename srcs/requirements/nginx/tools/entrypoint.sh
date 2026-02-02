@@ -1,47 +1,35 @@
 #!/bin/bash
-set -e
 
-: "${DOMAIN_NAME:?DOMAIN_NAME is required}"
-: "${CERT_PATH:?CERT_PATH is required}"
-: "${KEY_PATH:?KEY_PATH is required}"
 
-CERT_DIR=$(dirname "${CERT_PATH}")
-KEY_DIR=$(dirname "${KEY_PATH}")
 
-mkdir -p "${CERT_DIR}" "${KEY_DIR}"
 
-if [ ! -f "${CERT_PATH}" ] || [ ! -f "${KEY_PATH}" ]; then
-  echo "[nginx] Generating self-signed TLS certificate for ${DOMAIN_NAME}..."
-  openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
-    -keyout "${KEY_PATH}" -out "${CERT_PATH}" \
-    -subj "/CN=${DOMAIN_NAME}"
-fi
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx-selfsigned.key -out $CERTS_ -subj "/C=MO/L=KH/O=1337/OU=student/CN=sahafid.42.ma"
 
-cat > /etc/nginx/sites-available/default << NGINXCONF
+
+echo "
 server {
-    listen 443 ssl http2;
-    server_name ${DOMAIN_NAME};
+    listen 443 ssl;
+    listen [::]:443 ssl;
 
+    #server_name www.$DOMAIN_NAME $DOMAIN_NAME;
+
+    ssl_certificate $CERTS_;
+    ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;" > /etc/nginx/sites-available/default
+
+
+echo '
+    ssl_protocols TLSv1.3;
+
+    index index.php;
     root /var/www/html;
-    index index.php index.html index.htm;
 
-    ssl_certificate     ${CERT_PATH};
-    ssl_certificate_key ${KEY_PATH};
-    ssl_protocols       TLSv1.2 TLSv1.3;
-    ssl_ciphers         HIGH:!aNULL:!MD5;
+    location ~ [^/]\.php(/|$) { 
+            try_files $uri =404;
+            fastcgi_pass wordpress:9000;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        }
+} ' >>  /etc/nginx/sites-available/default
 
-    location / {
-        try_files \$uri \$uri/ /index.php?\$args;
-    }
 
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass wordpress:9000;
-    }
-}
-NGINXCONF
-
-nginx -t
-
-echo "[nginx] Starting nginx..."
-exec nginx -g 'daemon off;'
+nginx -g "daemon off;"

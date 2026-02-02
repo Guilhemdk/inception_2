@@ -1,15 +1,13 @@
 FROM debian:bullseye
 
-RUN apt-get update -y \
-    && apt-get install -y mariadb-server \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y mariadb-server && \
+    apt-get clean && \
+    apt-get --yes --quiet autoremove --purge && \
+    rm -rf /var/lib/apt/lists/*
 
-# Basic MariaDB config override (bind to all interfaces inside container)
-COPY tools/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY --chmod=0755 ./tools/script.sh /usr/local/bin/
 
-COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    && mkdir -p /run/mysqld \
-    && chown -R mysql:mysql /run/mysqld /var/lib/mysql || true
+EXPOSE 3306
 
-CMD ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/script.sh"]
